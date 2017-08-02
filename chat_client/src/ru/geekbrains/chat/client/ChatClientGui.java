@@ -12,7 +12,7 @@ import java.awt.event.ItemListener;
 /**
  * Created by Administrator on 27.07.2017.
  */
-public class ChatClientGui extends JFrame implements ActionListener, ItemListener {
+public class ChatClientGui extends JFrame implements ActionListener {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -68,64 +68,66 @@ public class ChatClientGui extends JFrame implements ActionListener, ItemListene
         bottomPanel.add(btnDisconnect,BorderLayout.WEST);
         bottomPanel.add(fieldInput, BorderLayout.CENTER);
         bottomPanel.add(btnSend,BorderLayout.EAST);
+        bottomPanel.setVisible(false);
         add(bottomPanel,BorderLayout.SOUTH);
 
         btnLogin.addActionListener(this);
         btnDisconnect.addActionListener(this);
         btnSend.addActionListener(this);
-        chkAlwaysOnTop.addItemListener(this);
+        chkAlwaysOnTop.addActionListener(this);
 
+        fieldIPAddr.addActionListener(this);
+        fieldPort.addActionListener(this);
+        fieldLogin.addActionListener(this);
+        fieldPass.addActionListener(this);
+        btnLogin.addActionListener(this);
+        btnDisconnect.addActionListener(this);
+        fieldInput.addActionListener(this);
+        btnSend.addActionListener(this);
+        chkAlwaysOnTop.addActionListener(this);
 
-
-
+        setAlwaysOnTop(chkAlwaysOnTop.isSelected());
         setVisible(true);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
 
-        Object src  = e.getSource();
-
-        if(src == btnLogin){
+        boolean a = true;
+        Object src = e.getSource();
+        if (    src == fieldIPAddr ||
+                src == fieldPort   ||
+                src == fieldLogin  ||
+                src == fieldPass   ||
+                src == btnLogin) {
             connect();
-        }
-        if (src == btnDisconnect){
+        } else if (src == btnDisconnect) {
             disconnect();
-        }
-        if (src == btnSend){
+        } else if (src == fieldInput || src == btnSend) {
             sendMsg();
+        } else if (src == chkAlwaysOnTop) {
+            setAlwaysOnTop(chkAlwaysOnTop.isSelected());
+        } else {
+            throw new RuntimeException("Unknown src = " + src);
         }
-
-
-    }
-
-    @Override
-    public void itemStateChanged(ItemEvent e) {
-        Object src = e.getItemSelectable();
-        if (src == chkAlwaysOnTop){
-            setAlwaysOnTop(true);
-        }
-        if(e.getStateChange() == ItemEvent.DESELECTED) setAlwaysOnTop(false);
     }
 
     private void connect(){
-        System.out.println("Connect");
         upperPanel.setVisible(false);
         bottomPanel.setVisible(true);
     }
 
     private void disconnect(){
-        System.out.println("disconnect");
         upperPanel.setVisible(true);
         bottomPanel.setVisible(false);
     }
 
     private void sendMsg(){
-        String text = fieldInput.getText() + "\n";
-        if (text != null) {
-            fieldInput.setText(null);
-            log.append(text);
-        }
+        String msg = fieldInput.getText();
+        if(msg.equals("")) return;
+        fieldInput.setText(null);
+        fieldInput.requestFocus();
+        log.append(msg + "\n");
     }
 
 }
