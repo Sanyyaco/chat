@@ -72,7 +72,7 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         bottomPanel.add(btnDisconnect,BorderLayout.WEST);
         bottomPanel.add(fieldInput, BorderLayout.CENTER);
         bottomPanel.add(btnSend,BorderLayout.EAST);
-        bottomPanel.setVisible(true); //TODO
+        bottomPanel.setVisible(false);
         add(bottomPanel,BorderLayout.SOUTH);
 
         btnLogin.addActionListener(this);
@@ -116,11 +116,11 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         }
     }
 
-
     private SocketThread socketThread;
 
     private void connect(){
-
+        bottomPanel.setVisible(true);
+        upperPanel.setVisible(false);
         try {
             Socket socket = new Socket(fieldIPAddr.getText(),Integer.parseInt(fieldPort.getText()));
             socketThread = new SocketThread(this,"SocketThread",socket);
@@ -132,6 +132,8 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
     }
 
     private void disconnect(){
+        bottomPanel.setVisible(false);
+        upperPanel.setVisible(true);
         socketThread.close();
     }
 
