@@ -1,6 +1,7 @@
 package ru.geekbrains.chat.client;
 
 import ru.geekbrains.chat.library.DefaultGUIExceptionHandler;
+import ru.geekbrains.chat.library.Messages;
 import ru.geekbrains.network.SocketThread;
 import ru.geekbrains.network.SocketThreadListener;
 
@@ -119,8 +120,7 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
     private SocketThread socketThread;
 
     private void connect(){
-        bottomPanel.setVisible(true);
-        upperPanel.setVisible(false);
+
         try {
             Socket socket = new Socket(fieldIPAddr.getText(),Integer.parseInt(fieldPort.getText()));
             socketThread = new SocketThread(this,"SocketThread",socket);
@@ -132,8 +132,7 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
     }
 
     private void disconnect(){
-        bottomPanel.setVisible(false);
-        upperPanel.setVisible(true);
+
         socketThread.close();
     }
 
@@ -164,6 +163,8 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
             public void run() {
                 log.append("Соединение потеряно\n");
                 log.setCaretPosition(log.getDocument().getLength());
+                bottomPanel.setVisible(false);
+                upperPanel.setVisible(true);
             }
         });
     }
@@ -173,8 +174,13 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                log.append("Соединение остановлено\n");
+                log.append("Соединение установлено\n");
                 log.setCaretPosition(log.getDocument().getLength());
+                bottomPanel.setVisible(true);
+                upperPanel.setVisible(false);
+                String login = fieldLogin.getText();
+                String password = new String(fieldPass.getPassword());
+                socketThread.sendMsg(Messages.getAuthRequest(login, password));
             }
         });
     }

@@ -1,5 +1,6 @@
 package ru.geekbrains.chat.server.core;
 
+import ru.geekbrains.chat.library.Messages;
 import ru.geekbrains.network.ServerSocketThread;
 import ru.geekbrains.network.ServerSocketThreadListener;
 import ru.geekbrains.network.SocketThread;
@@ -7,6 +8,7 @@ import ru.geekbrains.network.SocketThreadListener;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.Vector;
 
 /**
@@ -14,12 +16,15 @@ import java.util.Vector;
  */
 public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
 
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss: ");
     private final ChatServerListener eventListener;
+    private final AuthService authService;
     private ServerSocketThread serverSocketThread;
     private final Vector<SocketThread> clients = new Vector<>();
 
-    public ChatServer(ChatServerListener eventListener) {
+    public ChatServer(ChatServerListener eventListener, AuthService authService) {
         this.eventListener = eventListener;
+        this.authService = authService;
     }
 
     public void startListening(int port){
@@ -28,10 +33,13 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             return;
         }
         serverSocketThread = new ServerSocketThread("ServerSocketThread",port,this,2000);
+        authService.start();
     }
 
     public void dropAllClients(){
-        putLog("dropAllClients");
+        for (int i = 0; i < clients.size() ; i++) {
+            clients.get(i).close();
+        }
     }
 
     public void stopListening(){
@@ -40,10 +48,13 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             return;
         }
         serverSocketThread.interrupt();
+        authService.stop();
     }
 
     private synchronized void putLog(String msg){
-        eventListener.onLogChatServer(this, msg);
+        String msgLog = dateFormat.format(System.currentTimeMillis());
+        msgLog = msgLog + Thread.currentThread().getState() + ": " + msg;
+        eventListener.onLogChatServer(this, msgLog);
     }
 
     @Override
@@ -70,7 +81,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     public void onAcceptedSocket(ServerSocketThread thread, ServerSocket serverSocket, Socket socket) {
         putLog("Client connected: " + socket);
         String threadName = "Socket thread: " + socket.getInetAddress() + ":" + socket.getPort();
-        new SocketThread(this,threadName,socket);
+        new ChatSocketThread(this,threadName,socket);
     }
 
     @Override
@@ -87,6 +98,11 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     public synchronized void onStopSocketThread(SocketThread socketThread) {
         putLog("stoped.");
         clients.remove(socketThread);
+        ChatSocketThread client = (ChatSocketThread) socketThread;
+        if(client.isAuthorized() && !client.isReconnected()){
+            sendToAllAuthorizedClients(Messages.getBroadcast("Server",client.getNickname() + " disconnected."));
+        }
+
     }
 
     @Override
@@ -97,9 +113,61 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
 
     @Override
     public synchronized void onReceiveString(SocketThread socketThread, Socket socket, String value) {
-        for (int i = 0; i < clients.size(); i++) {
-            clients.get(i).sendMsg(value);
+        ChatSocketThread client = (ChatSocketThread) socketThread;
+        if(client.isAuthorized()){
+            handleAuthorizeClient(client,value);
+        } else{
+            handleNonAuthorizeClient(client,value);
         }
+    }
+
+    private void handleAuthorizeClient(ChatSocketThread client, String msg){
+        sendToAllAuthorizedClients(Messages.getBroadcast(client.getNickname(),msg));
+    }
+
+    private void sendToAllAuthorizedClients(String msg){
+        int cnt = clients.size();
+        for (int i = 0; i < cnt ; i++) {
+            ChatSocketThread client = (ChatSocketThread) clients.get(i);
+            if(client.isAuthorized()) client.sendMsg(msg);
+        }
+    }
+
+    private void handleNonAuthorizeClient(ChatSocketThread newclient, String msg){
+        String[] tokens = msg.split(Messages.DELIMITER);
+        if (tokens.length != 3 || !tokens[0].equals(Messages.AUTH_REQUEST)) {
+            newclient.messageFormatError(msg);
+            return;
+        }
+
+        String login = tokens[1];
+        String password = tokens[2];
+        String nickname = authService.getNickname(login, password);
+
+        if(nickname == null){
+            newclient.authError();
+            return;
+        }
+
+
+        ChatSocketThread client = getClientByNickname(nickname);
+        newclient.authAcccept(nickname);
+        if(client == null){
+            sendToAllAuthorizedClients(Messages.getBroadcast("Server", newclient.getNickname() + " connected." ));
+        } else {
+            client.reconnected();
+        }
+
+    }
+
+    private ChatSocketThread getClientByNickname(String nickname){
+        final int cnt = clients.size();
+        for (int i = 0; i < cnt ; i++) {
+            ChatSocketThread client = (ChatSocketThread) clients.get(i);
+            if(!client.isAuthorized()) continue;
+            if(client.getNickname().equals(nickname)) return client;
+        }
+        return null;
     }
 
     @Override

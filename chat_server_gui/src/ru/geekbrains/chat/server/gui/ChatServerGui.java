@@ -3,6 +3,7 @@ package ru.geekbrains.chat.server.gui;
 import ru.geekbrains.chat.library.DefaultGUIExceptionHandler;
 import ru.geekbrains.chat.server.core.ChatServer;
 import ru.geekbrains.chat.server.core.ChatServerListener;
+import ru.geekbrains.chat.server.core.SimpleAuthService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -32,7 +33,7 @@ public class ChatServerGui extends JFrame implements ActionListener, ChatServerL
         });
     }
 
-    private final ChatServer chatServer = new ChatServer(this);
+    private final ChatServer chatServer = new ChatServer(this, new SimpleAuthService());
     private final JButton btnStartListening = new JButton(START_LISTENING);
     private final JButton btnStopListening = new JButton(STOP_LISTENING);
     private final JButton btnDropAllClients = new JButton(DROP_ALL_CLIENTS);
