@@ -75,7 +75,7 @@ public class ChatServerGui extends JFrame implements ActionListener, ChatServerL
             chatServer.stopListening();
         }
         else {
-            throw new RuntimeException("Uknown src = " + src);
+            throw new RuntimeException("Unknown src = " + src);
         }
     }
 

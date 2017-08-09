@@ -13,6 +13,12 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.IOException;
 import java.net.Socket;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static ru.geekbrains.chat.library.Messages.*;
+
 
 /**
  * Created by Administrator on 27.07.2017.
@@ -33,11 +39,11 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
     private static final String TITLE = "Chat client";
 
     private final JPanel upperPanel = new JPanel(new GridLayout(2,3));
-    private final JTextField fieldIPAddr = new JTextField("89.222.249.131");
+    private final JTextField fieldIPAddr = new JTextField("127.0.0.1");
     private final JTextField fieldPort = new JTextField("8189");
-    private final JCheckBox chkAlwaysOnTop = new JCheckBox("Always on top");
-    private final JTextField fieldLogin = new JTextField("login_1");
-    private final JPasswordField fieldPass = new JPasswordField("pass_1");
+    private final JCheckBox chkAlwaysOnTop = new JCheckBox("Always on top", true);
+    private final JTextField fieldLogin = new JTextField("lex");
+    private final JPasswordField fieldPass = new JPasswordField("lex");
     private final JButton btnLogin = new JButton("Login");
 
     private final JTextArea log = new JTextArea();
@@ -190,7 +196,27 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                log.append(value + "\n");
+                String[] message = value.split(DELIMITER);
+                String output = null;
+                SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss: ");
+
+                switch(message[0]){
+                    case AUTH_REQUEST: break;
+                    case AUTH_ACCEPT: break;
+                    case AUTH_ERROR: break;
+                    case USERS_LIST:break;
+                    case RECONNECT:break;
+                    case BROADCAST:{
+                        Long dateString = Long.parseLong(message[1]);
+                        output =  df.format(dateString) + ": " + message[2] + ": " + message[3];
+                        break;
+                    }
+                    case MSG_FORMAT_ERROR:break;
+                    default: new RuntimeException("Source: " + this.getClass() + ": Unknown type of message");
+
+                }
+                if(output == null)  new RuntimeException("Source: " + this.getClass() + ": empty output string");
+                log.append(output + "\n");
                 log.setCaretPosition(log.getDocument().getLength());
             }
         });
