@@ -1,5 +1,6 @@
 package ru.geekbrains.chat.server.core;
 
+import com.sun.prism.shader.Solid_TextureYV12_AlphaTest_Loader;
 import ru.geekbrains.chat.library.Messages;
 import ru.geekbrains.network.ServerSocketThread;
 import ru.geekbrains.network.ServerSocketThreadListener;
@@ -10,6 +11,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Vector;
+
+import static java.lang.Thread.currentThread;
+import static java.lang.Thread.sleep;
 
 /**
  * Created by Administrator on 27.07.2017.
@@ -25,6 +29,31 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     public ChatServer(ChatServerListener eventListener, AuthService authService) {
         this.eventListener = eventListener;
         this.authService = authService;
+        Thread authChecker = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    try {
+                        sleep(120);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    checkTimeToAuth();
+                }
+            }
+        });
+        authChecker.setDaemon(true);
+        authChecker.start();
+    }
+
+    private void checkTimeToAuth(){
+        final int cnt = clients.size();
+        final long checkStartTime = System.currentTimeMillis();
+        for (int i = 0; i < cnt; i++) {
+            final ChatSocketThread client = (ChatSocketThread)clients.get(i);
+            long clientStartTime = client.getStartTime();
+            if((checkStartTime-clientStartTime)>120 && !client.isAuthorized()) client.close();
+        }
     }
 
     public void startListening(int port){
@@ -149,7 +178,6 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             newclient.authError();
             return;
         }
-
 
         ChatSocketThread oldClient = getClientByNickname(nickname);
         newclient.authAcccept(nickname);

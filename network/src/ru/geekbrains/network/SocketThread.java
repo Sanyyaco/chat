@@ -5,6 +5,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Date;
 
 /**
  * Created by Administrator on 02.08.2017.
@@ -15,12 +16,18 @@ public class SocketThread extends Thread {
     private final Socket socket;
     private DataOutputStream out;
     private DataInputStream in;
+    private Long startTime;
 
     public SocketThread(SocketThreadListener eventListener, String name, Socket socket) {
         super(name);
         this.eventListener = eventListener;
         this.socket = socket;
+        startTime = System.currentTimeMillis();
         start();
+    }
+
+    public Long getStartTime() {
+        return startTime;
     }
 
     @Override
