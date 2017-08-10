@@ -2,6 +2,7 @@ package ru.geekbrains.chat.client;
 
 import ru.geekbrains.chat.library.DefaultGUIExceptionHandler;
 import ru.geekbrains.chat.library.Messages;
+import ru.geekbrains.chat.library.Messages.*;
 import ru.geekbrains.network.SocketThread;
 import ru.geekbrains.network.SocketThreadListener;
 
@@ -9,27 +10,19 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.io.IOException;
 import java.net.Socket;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Arrays;
 
-import static ru.geekbrains.chat.library.Messages.*;
-
-
-/**
- * Created by Administrator on 27.07.2017.
- */
-public class ChatClientGui extends JFrame implements ActionListener, SocketThreadListener {
+@SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
+public class ChatClientGUI extends JFrame implements ActionListener, SocketThreadListener {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new ChatClientGui();
+                new ChatClientGUI();
             }
         });
     }
@@ -37,6 +30,7 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
     private static final int WIDTH = 300;
     private static final int HEIGHT = 350;
     private static final String TITLE = "Chat client";
+    private static final String [] EMPTY_STRING = new String[0];
 
     private final JPanel upperPanel = new JPanel(new GridLayout(2,3));
     private final JTextField fieldIPAddr = new JTextField("127.0.0.1");
@@ -54,11 +48,13 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
     private final JTextField fieldInput = new JTextField();
     private final JButton btnSend = new JButton("Send");
 
-    private  ChatClientGui(){
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss - ");
+
+    private ChatClientGUI() {
         Thread.setDefaultUncaughtExceptionHandler(new DefaultGUIExceptionHandler());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setSize(WIDTH,HEIGHT);
+        setSize(WIDTH, HEIGHT);
         setTitle(TITLE);
         upperPanel.add(fieldIPAddr);
         upperPanel.add(fieldPort);
@@ -66,26 +62,22 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         upperPanel.add(fieldLogin);
         upperPanel.add(fieldPass);
         upperPanel.add(btnLogin);
-        add(upperPanel,BorderLayout.NORTH);
+        add(upperPanel, BorderLayout.NORTH);
 
         JScrollPane scrollLog = new JScrollPane(log);
         log.setEditable(false);
-        add(scrollLog,BorderLayout.CENTER);
+        log.setLineWrap(true);
+        add(scrollLog, BorderLayout.CENTER);
 
         JScrollPane scrollUsers = new JScrollPane(userList);
-        scrollUsers.setPreferredSize(new Dimension(150,0));
+        scrollUsers.setPreferredSize(new Dimension(150, 0));
         add(scrollUsers, BorderLayout.EAST);
 
-        bottomPanel.add(btnDisconnect,BorderLayout.WEST);
+        bottomPanel.add(btnDisconnect, BorderLayout.WEST);
         bottomPanel.add(fieldInput, BorderLayout.CENTER);
-        bottomPanel.add(btnSend,BorderLayout.EAST);
+        bottomPanel.add(btnSend, BorderLayout.EAST);
         bottomPanel.setVisible(false);
-        add(bottomPanel,BorderLayout.SOUTH);
-
-        btnLogin.addActionListener(this);
-        btnDisconnect.addActionListener(this);
-        btnSend.addActionListener(this);
-        chkAlwaysOnTop.addActionListener(this);
+        add(bottomPanel, BorderLayout.SOUTH);
 
         fieldIPAddr.addActionListener(this);
         fieldPort.addActionListener(this);
@@ -103,8 +95,6 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
-        boolean a = true;
         Object src = e.getSource();
         if (    src == fieldIPAddr ||
                 src == fieldPort   ||
@@ -125,11 +115,10 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
 
     private SocketThread socketThread;
 
-    private void connect(){
-
+    private void connect() {
         try {
-            Socket socket = new Socket(fieldIPAddr.getText(),Integer.parseInt(fieldPort.getText()));
-            socketThread = new SocketThread(this,"SocketThread",socket);
+            Socket socket = new Socket(fieldIPAddr.getText(), Integer.parseInt(fieldPort.getText()));
+            socketThread = new SocketThread(this, "SocketThread", socket);
         } catch (IOException e) {
             e.printStackTrace();
             log.append("Exception: " + e.getMessage() + "\n");
@@ -137,18 +126,16 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         }
     }
 
-    private void disconnect(){
-
+    private void disconnect() {
         socketThread.close();
     }
 
-    private void sendMsg(){
+    private void sendMsg() {
         String msg = fieldInput.getText();
         if(msg.equals("")) return;
         fieldInput.setText(null);
         fieldInput.requestFocus();
         socketThread.sendMsg(msg);
-
     }
 
     @Override
@@ -156,7 +143,7 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                log.append("Поток сокета запущен\n");
+                log.append("Поток сокета запущен.\n");
                 log.setCaretPosition(log.getDocument().getLength());
             }
         });
@@ -167,10 +154,12 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                log.append("Соединение потеряно\n");
+                log.append("Соединение потеряно.\n");
                 log.setCaretPosition(log.getDocument().getLength());
-                bottomPanel.setVisible(false);
                 upperPanel.setVisible(true);
+                bottomPanel.setVisible(false);
+                userList.setListData(EMPTY_STRING);
+                setTitle(TITLE);
             }
         });
     }
@@ -180,10 +169,10 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                log.append("Соединение установлено\n");
+                log.append("Соединение установлено.\n");
                 log.setCaretPosition(log.getDocument().getLength());
-                bottomPanel.setVisible(true);
                 upperPanel.setVisible(false);
+                bottomPanel.setVisible(true);
                 String login = fieldLogin.getText();
                 String password = new String(fieldPass.getPassword());
                 socketThread.sendMsg(Messages.getAuthRequest(login, password));
@@ -196,30 +185,43 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                String[] message = value.split(DELIMITER);
-                String output = null;
-                SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss: ");
-
-                switch(message[0]){
-                    case AUTH_REQUEST: break;
-                    case AUTH_ACCEPT: break;
-                    case AUTH_ERROR: break;
-                    case USERS_LIST:break;
-                    case RECONNECT:break;
-                    case BROADCAST:{
-                        Long dateString = Long.parseLong(message[1]);
-                        output =  df.format(dateString) + ": " + message[2] + ": " + message[3];
-                        break;
-                    }
-                    case MSG_FORMAT_ERROR:break;
-                    default: new RuntimeException("Source: " + this.getClass() + ": Unknown type of message");
-
-                }
-                if(output == null)  new RuntimeException("Source: " + this.getClass() + ": empty output string");
-                log.append(output + "\n");
-                log.setCaretPosition(log.getDocument().getLength());
+                handleMsg(value);
             }
         });
+    }
+
+    private void handleMsg(String msg) {
+        String[] tokens = msg.split(Messages.DELIMITER);
+        String type = tokens[0];
+        switch (type) {
+            case Messages.AUTH_ACCEPT:
+                setTitle(TITLE + " nickname: " + tokens[1]);
+                break;
+            case Messages.AUTH_ERROR:
+                log.append(dateFormat.format(System.currentTimeMillis()) + "Неправильные имя/пароль\n");
+                log.setCaretPosition(log.getDocument().getLength());
+                break;
+            case Messages.BROADCAST:
+                log.append(dateFormat.format(Long.parseLong(tokens[1])) + tokens[2] + ": " + tokens[3] + "\n");
+                log.setCaretPosition(log.getDocument().getLength());
+                break;
+            case Messages.USERS_LIST:
+                String allUsersMsg = msg.substring(Messages.USERS_LIST.length() + Messages.DELIMITER.length());
+                String[] users = allUsersMsg.split(Messages.DELIMITER);
+                Arrays.sort(users);
+                userList.setListData(users);
+                break;
+            case Messages.RECONNECT:
+                log.append(dateFormat.format(System.currentTimeMillis()) + "Переподключён с другого клиента.\n");
+                log.setCaretPosition(log.getDocument().getLength());
+                break;
+            case Messages.MSG_FORMAT_ERROR:
+                log.append(dateFormat.format(System.currentTimeMillis()) + "Неправильный формат сообщения: '" + msg + "'\n");
+                log.setCaretPosition(log.getDocument().getLength());
+                break;
+            default:
+                throw new RuntimeException("Unknown message type: " + type);
+        }
     }
 
     @Override
@@ -228,10 +230,9 @@ public class ChatClientGui extends JFrame implements ActionListener, SocketThrea
             @Override
             public void run() {
                 e.printStackTrace();
-                log.append("Exception: " + e.getMessage() + "\n");
+                log.append("Exception: " + e + "\n");
                 log.setCaretPosition(log.getDocument().getLength());
             }
         });
-
     }
 }

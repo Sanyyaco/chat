@@ -101,6 +101,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
         ChatSocketThread client = (ChatSocketThread) socketThread;
         if(client.isAuthorized() && !client.isReconnected()){
             sendToAllAuthorizedClients(Messages.getBroadcast("Server",client.getNickname() + " disconnected."));
+            sendToAllAuthorizedClients(Messages.getUsersList(getAllNicknamesString()));
         }
 
     }
@@ -150,14 +151,14 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
         }
 
 
-        ChatSocketThread client = getClientByNickname(nickname);
+        ChatSocketThread oldClient = getClientByNickname(nickname);
         newclient.authAcccept(nickname);
-        if(client == null){
+        if(oldClient == null){
             sendToAllAuthorizedClients(Messages.getBroadcast("Server", newclient.getNickname() + " connected." ));
         } else {
-            client.reconnected();
+            oldClient.reconnected();
         }
-
+        sendToAllAuthorizedClients(Messages.getUsersList(getAllNicknamesString()));
     }
 
     private ChatSocketThread getClientByNickname(String nickname){
@@ -168,6 +169,19 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             if(client.getNickname().equals(nickname)) return client;
         }
         return null;
+    }
+
+    private String getAllNicknamesString(){
+        StringBuilder sb = new StringBuilder();
+        final int cnt = clients.size();
+        final int last = cnt - 1;
+        for (int i = 0; i < cnt; i++) {
+            ChatSocketThread client = (ChatSocketThread) clients.get(i);
+            if(!client.isAuthorized() || client.isReconnected()) continue;
+            sb.append(client.getNickname());
+            if(i != last) sb.append(Messages.DELIMITER);
+        }
+        return sb.toString();
     }
 
     @Override
